@@ -1,7 +1,7 @@
 // Builds a single self-contained HTML file of the site (React bundled, images inlined)
 // for sharing as a preview. The real site is the Next.js app: `npm run build`.
 import { build } from "esbuild";
-import { readFileSync, writeFileSync, readdirSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,7 +35,11 @@ const result = await build({
     setup(b) {
       b.onResolve({ filter: /^@\/lib\/assets$/ }, () => ({ path: "assets", namespace: "preview-assets" }));
       b.onLoad({ filter: /.*/, namespace: "preview-assets" }, () => ({ contents: previewAssets, loader: "ts" }));
-      b.onResolve({ filter: /^@\// }, (a) => ({ path: join(root, a.path.slice(2)) + (a.path.endsWith(".tsx") ? "" : ".tsx") }));
+      b.onResolve({ filter: /^@\// }, (a) => {
+        const base = join(root, a.path.slice(2));
+        const hit = [base, base + ".tsx", base + ".ts"].find((f) => /\.tsx?$/.test(f) && existsSync(f));
+        return { path: hit ?? base };
+      });
     },
   }],
 });

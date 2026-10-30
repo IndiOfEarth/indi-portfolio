@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Stream, { Block } from "./Stream";
 import { ASSETS } from "@/lib/assets";
+import { PostsContext } from "./PostsContext";
+import { FALLBACK_POSTS, type Post } from "@/lib/medium";
 import {
-  ArchDiagram, CapacityGrid, CifakeStats, Contact, DynamoFigure, Essays, GaFigure, Mistakes,
+  ArchDiagram, CapacityGrid, CifakeStats, Contact, DynamoFigure, EssayOpening, Essays, GaFigure, Mistakes,
   PactDemo, ProfileCard, Quote, Rows, TransformExplorer, VectorFigure, VideoCard,
 } from "./Figures";
 
@@ -95,10 +97,11 @@ const TURNS: Turn[] = [
     keys: ["write", "writing", "essay", "dynamo", "medium", "blog", "system design", "distributed", "amazon"],
     a: (
       <>
-        <Stream delay={90}>Yes, mostly to check understanding. Indi's first published essay, written for fun to learn system design, is about Amazon's Dynamo and the cost of being always available. The core trade-off fits in one picture:</Stream>
-        <Block><DynamoFigure /></Block>
-        <Stream>A shopping cart can accept writes on both sides of a network failure and merge them later. A payment can't, and that question led straight into the PACT research. Another essay, on AI that acts instead of answers, is in draft.</Stream>
+        <Stream delay={90}>Yes, mostly to check understanding. Indi's first published essay, written for fun to learn system design, is about Amazon's Dynamo and the cost of being always available.</Stream>
+        <EssayOpening />
         <Block><Essays /></Block>
+        <Stream>The core trade-off fits in one picture. A shopping cart can accept writes on both sides of a network failure and merge them later. A payment can't, and that question led straight into the PACT research.</Stream>
+        <Block><DynamoFigure /></Block>
       </>
     ),
   },
@@ -189,7 +192,7 @@ const Menu = () => (
 /* ------------------------------------------------------------------ */
 /* Component                                                           */
 /* ------------------------------------------------------------------ */
-export default function ChatPortfolio() {
+export default function ChatPortfolio({ posts = FALLBACK_POSTS }: { posts?: Post[] }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const typedRef = useRef<HTMLSpanElement>(null);
   const sendRef = useRef<HTMLButtonElement>(null);
@@ -326,6 +329,7 @@ export default function ChatPortfolio() {
   }, []);
 
   return (
+    <PostsContext.Provider value={posts}>
     <div ref={rootRef} className="app">
       <aside className={`side${sideOpen ? " open" : ""}`} aria-label="Conversation">
         <div className="side-top"><span className="side-brand">Indi Caburian</span></div>
@@ -405,5 +409,6 @@ export default function ChatPortfolio() {
         </div>
       </div>
     </div>
+    </PostsContext.Provider>
   );
 }

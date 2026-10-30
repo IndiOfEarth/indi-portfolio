@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ASSETS } from "@/lib/assets";
+import { usePosts } from "./PostsContext";
+import Stream from "./Stream";
 
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const cssVar = (n: string) =>
@@ -655,21 +657,53 @@ export function VideoCard({ id, title, label, sub }: { id: string; title: string
   );
 }
 
+const fmtDate = (iso: string) =>
+  iso ? new Date(iso + "T12:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "";
+
+/** Essay cards, built from Indi's Medium feed. */
 export function Essays() {
+  const posts = usePosts().slice(0, 4);
+  const hasAgentic = posts.some((p) => /agentic|ghost/i.test(p.title));
   return (
-    <div className="essays">
-      <a className="essay lead" href="https://medium.com/@indi.caburian/the-cost-of-always-available-systems-amazon-and-dynamo-602494e5fb5f">
-        <span className="meta">Medium, 11 October 2026, 17 min read</span>
-        <h4>The cost of “always available” systems: Amazon and Dynamo</h4>
-        <p>What a highly available database asks of the people using it, and why the answer changes when the operation is a payment.</p>
-        <span className="cta">Read on Medium</span>
-      </a>
-      <div className="essay draft">
-        <span className="meta">In draft</span>
-        <h4>The agentic ghost in the machine</h4>
-        <p>On the move from AI that answers to AI that acts: agency, permission, and who is responsible when software acts on your behalf.</p>
-      </div>
+    <div className="essay-list">
+      {posts.map((p, i) => (
+        <a key={p.url} className={`essay-card${i === 0 ? " lead" : ""}${p.cover ? " has-cover" : ""}`} href={p.url}>
+          {p.cover && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="essay-cover" src={p.cover} alt="" loading="lazy" />
+          )}
+          <div className="essay-body">
+            <span className="meta">Medium{p.date ? `, ${fmtDate(p.date)}` : ""}, {p.minutes} min read</span>
+            <h4>{p.title}</h4>
+            {p.subtitle && <p className="sub">{p.subtitle}</p>}
+            {p.opening && i === 0 && <p className="open">{p.opening.length > 280 ? p.opening.slice(0, 277).replace(/\s+\S*$/, "") + "…" : p.opening}</p>}
+            <span className="cta">Read on Medium</span>
+          </div>
+        </a>
+      ))}
+      {!hasAgentic && (
+        <div className="essay-card draft">
+          <div className="essay-body">
+            <span className="meta">In draft</span>
+            <h4>The agentic ghost in the machine</h4>
+            <p className="sub">On the move from AI that answers to AI that acts: agency, permission, and who is responsible when software acts on your behalf.</p>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+/** The opening lines of the latest essay, streamed in like the assistant is quoting it. */
+export function EssayOpening() {
+  const post = usePosts()[0];
+  if (!post?.opening) return null;
+  const quote = post.opening.length > 420 ? post.opening.slice(0, 417).replace(/\s+\S*$/, "") + "…" : post.opening;
+  return (
+    <>
+      <Stream>{"Here's how it opens:"}</Stream>
+      <div className="essay-quote"><Stream>{quote}</Stream></div>
+    </>
   );
 }
 
