@@ -599,20 +599,45 @@ const PREVIEW = process.env.NEXT_PUBLIC_PREVIEW === "1";
 export function VideoCard({ id, title, label, sub }: { id: string; title: string; label: string; sub: string }) {
   const yt = `https://www.youtube.com/watch?v=${id}`;
   const img = (name: string) => `https://i.ytimg.com/vi/${id}/${name}.jpg`;
+  // Best available cover first. YouTube answers a missing size with a tiny 120×90 placeholder.
+  const COVERS = ["maxresdefault", "sddefault", "hqdefault"];
   // YouTube publishes three real frames from every video, at roughly 25%, 50% and 75% of the way through.
   const STILLS = ["hq1", "hq2", "hq3"];
-  const [poster, setPoster] = useState(img("maxresdefault"));
+  const [cover, setCover] = useState(0);
+  const [picked, setPicked] = useState<string | null>(null);
   const [thumb, setThumb] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [still, setStill] = useState(-1);
-  const [stillsOk, setStillsOk] = useState<boolean[]>([false, false, false]);
+  const [failed, setFailed] = useState<boolean[]>([false, false, false]);
+  const posterRef = useRef<HTMLImageElement>(null);
+  const stillRefs = useRef<(HTMLImageElement | null)[]>([]);
+  const poster = picked ?? (cover < COVERS.length ? img(COVERS[cover]) : null);
+
+  const checkPoster = (el: HTMLImageElement | null) => {
+    if (!el || !el.complete) return;
+    if (el.naturalWidth > 200) setThumb(true);
+    else if (!picked) { setThumb(false); setCover((c) => c + 1); }
+  };
+  const checkStill = (el: HTMLImageElement | null, i: number) => {
+    if (!el || !el.complete) return;
+    if (el.naturalWidth <= 200) setFailed((f) => f.map((v, j) => (j === i ? true : v)));
+  };
+
+  // Images can finish loading before React attaches its handlers, so look at them once mounted too.
+  useEffect(() => {
+    checkPoster(posterRef.current);
+    stillRefs.current.forEach((el, i) => checkStill(el, i));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poster]);
 
   const posterInner = (
     <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="poster" src={poster} alt="" hidden={!thumb}
-        onLoad={(e) => { if (e.currentTarget.naturalWidth > 200) setThumb(true); }}
-        onError={() => { if (poster.endsWith("maxresdefault.jpg")) setPoster(img("hqdefault")); }} />
+      {poster && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img ref={posterRef} key={poster} className="poster" src={poster} alt=""
+          style={{ opacity: thumb ? 1 : 0 }}
+          onLoad={(e) => checkPoster(e.currentTarget)}
+          onError={() => { setThumb(false); if (!picked) setCover((c) => c + 1); }} />
+      )}
       <span className="play" aria-hidden="true" />
       <span className="vt">{title}</span>
     </>
@@ -639,20 +664,23 @@ export function VideoCard({ id, title, label, sub }: { id: string; title: string
         <div><b>{label}</b><span className="vm">{sub}</span></div>
         <a className="pillbtn" href={yt}>YouTube</a>
       </div>
-      <div className="stills" hidden={!stillsOk.some(Boolean)}>
-        <span className="stills-label">Stills from the video</span>
-        <div className="stills-row">
-          {STILLS.map((n, i) => (
-            <button key={n} type="button" aria-pressed={still === i} hidden={!stillsOk[i]}
-              aria-label={`Show still ${i + 1} from the video`}
-              onClick={() => { setPlaying(false); setStill(i); setPoster(img(n)); setThumb(true); }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img(n)} alt="" loading="lazy"
-                onLoad={(e) => { if (e.currentTarget.naturalWidth > 200) setStillsOk((o) => o.map((v, j) => (j === i ? true : v))); }} />
-            </button>
-          ))}
+      {!failed.every(Boolean) && (
+        <div className="stills">
+          <span className="stills-label">Stills from the video</span>
+          <div className="stills-row">
+            {STILLS.map((n, i) => !failed[i] && (
+              <button key={n} type="button" aria-pressed={picked === img(n)}
+                aria-label={`Show still ${i + 1} from the video`}
+                onClick={() => { setPlaying(false); setPicked(img(n)); setThumb(true); }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img ref={(el) => { stillRefs.current[i] = el; }} src={img(n)} alt=""
+                  onLoad={(e) => checkStill(e.currentTarget, i)}
+                  onError={() => setFailed((f) => f.map((v, j) => (j === i ? true : v)))} />
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </figure>
   );
 }
