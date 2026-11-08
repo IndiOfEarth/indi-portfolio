@@ -103,10 +103,6 @@ img { max-width: 100%; }
 .send { width: 2.3rem; height: 2.3rem; border-radius: 50%; border: 0; background: var(--ink); color: var(--paper); display: grid; place-items: center; cursor: pointer; transition: opacity .2s; }
 .send[data-idle="true"] { opacity: .25; }
 .footnote { position: absolute; left: 0; right: 0; bottom: -1.65rem; text-align: center; font-family: var(--sans); font-size: .76rem; color: var(--muted); opacity: var(--dock); }
-.nomatch { position: absolute; left: 0; right: 0; bottom: calc(100% + .6rem); max-width: var(--col); margin: 0 auto; background: var(--ink); color: var(--paper); font-family: var(--sans); font-size: .88rem; padding: .7rem .9rem; border-radius: 12px; pointer-events: auto; }
-.nomatch div { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
-.nomatch button { border: 1px solid #55534E; background: transparent; color: var(--paper); border-radius: 999px; padding: .25rem .7rem; cursor: pointer; font-size: .82rem; }
-.nomatch button:hover { border-color: var(--paper); }
 @keyframes blink { 50% { opacity: 0; } }
 
 /* ---------- Thread ---------- */
@@ -314,3 +310,14 @@ img { max-width: 100%; }
 .now div { display: grid; grid-template-columns: 6.2rem minmax(0, 1fr); gap: .9rem; padding: .6rem 0; border-bottom: 1px solid var(--rule); }
 .now dt { font-family: var(--sans); font-size: .84rem; color: var(--muted); padding-top: .15rem; }
 .now dd { margin: 0; font-size: 1.02rem; line-height: 1.4; }
+
+/* ---------- Live replies to typed questions ---------- */
+.live-turn .u p { animation: pop .35s cubic-bezier(.2, .8, .2, 1); }
+@keyframes pop { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+.follow { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.follow .chip { font-size: .86rem; }
+.mail .mail-row { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: .6rem; padding: .45rem 0; border-bottom: 1px solid var(--rule); font-family: var(--sans); font-size: .9rem; }
+.mail .mail-row span { color: var(--muted); }
+.mail .mail-row b { font-weight: 500; word-break: break-all; }
+.mail-body { margin-top: .9rem; font-size: 1.02rem; line-height: 1.5; }
+@media (prefers-reduced-motion: reduce) { .live-turn .u p { animation: none; } }

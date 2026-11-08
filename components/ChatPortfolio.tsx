@@ -5,6 +5,8 @@ import Stream, { Block } from "./Stream";
 import { ASSETS } from "@/lib/assets";
 import { PostsContext } from "./PostsContext";
 import { FALLBACK_POSTS, type Post } from "@/lib/medium";
+import { matchQuestion } from "@/lib/match";
+import { LiveTurn } from "./Live";
 import {
   ArchDiagram, CapacityGrid, CifakeStats, Contact, DynamoFigure, EssayOpening, Essays, GaFigure, Mistakes,
   PactDemo, ProfileCard, Quote, Rows, TransformExplorer, VectorFigure, VideoCard,
@@ -13,12 +15,11 @@ import {
 /* ------------------------------------------------------------------ */
 /* The conversation                                                    */
 /* ------------------------------------------------------------------ */
-type Turn = { id: string; title: string; q: string; keys: string[]; a: ReactNode };
+type Turn = { id: string; title: string; q: string; a: ReactNode };
 
 const TURNS: Turn[] = [
   {
     id: "who", title: "Who is Indi?", q: "Who is Indi?",
-    keys: ["who", "about", "indi", "intro", "yourself", "summary"],
     a: (
       <>
         <Stream delay={90}>Indi Caburian is a final-year computer science student at the University of London (Goldsmiths), predicted a First and graduating in April 2027. Indi builds software, runs experiments until the results stop matching the expected story, and then writes about what happened.</Stream>
@@ -31,7 +32,6 @@ const TURNS: Turn[] = [
   },
   {
     id: "cifake", title: "AI-image detection", q: "What's the most interesting thing Indi has built?",
-    keys: ["cifake", "image", "detect", "detector", "neural", "model", "ml", "machine learning", "build", "built", "interesting", "best", "project"],
     a: (
       <>
         <Stream delay={90}>Probably an experiment rather than an app. Indi built an AI-image detector with a deliberate handicap: only dense layers, no convolutions. Every 32 × 32 image reaches the model as a flat row of 3,072 numbers, with no idea which pixels are neighbours. Try switching views:</Stream>
@@ -44,7 +44,6 @@ const TURNS: Turn[] = [
   },
   {
     id: "looking", title: "What the model saw", q: "So what was the model actually looking at?",
-    keys: ["looking", "transform", "robust", "jpeg", "noise", "greyscale", "mistake", "finding", "result", "hypothesis"],
     a: (
       <>
         <Stream delay={90}>Indi's hypothesis was fragile generator fingerprints: tiny pixel-level artefacts left behind by Stable Diffusion. If that were true, JPEG compression and added noise should have broken the detector. They barely touched it. Pick a transformation to see it applied to real test images:</Stream>
@@ -58,7 +57,6 @@ const TURNS: Turn[] = [
   },
   {
     id: "pact", title: "PACT research", q: "What is Indi working on right now?",
-    keys: ["pact", "now", "current", "research", "agent", "agentic", "payment", "money", "final year", "dissertation", "working on"],
     a: (
       <>
         <Stream delay={90}>Final-year research called PACT, working title *Understanding is not permission*. Picture a student group chat after dinner: a receipt photo, a voice note, an amount that changes halfway through, and someone else chiming in. An AI can summarise that conversation well. Whether it should act on it is a separate question.</Stream>
@@ -72,7 +70,6 @@ const TURNS: Turn[] = [
   },
   {
     id: "fintrack", title: "FinTrack", q: "Can Indi ship real software?",
-    keys: ["fintrack", "app", "ship", "mobile", "software", "react native", "supabase", "engineer", "engineering", "code"],
     a: (
       <>
         <Stream delay={90}>Yes. **FinTrack** is a React Native app for students who want to know where their money goes, and it scored **91%** in the Mobile Development module. You can log and categorise spending, set monthly budgets, attach photos of receipts and follow stocks on a watchlist.</Stream>
@@ -84,7 +81,6 @@ const TURNS: Turn[] = [
   },
   {
     id: "creatures", title: "Evolving creatures", q: "What's the mountain-climbing creature project?",
-    keys: ["creature", "genetic", "evolv", "mountain", "climb", "pybullet", "simulation", "ga", "algorithm"],
     a: (
       <>
         <Stream delay={90}>A genetic-algorithms project that scored **85%**. In a PyBullet physics simulation, Indi evolved creatures to climb a mountain without ever telling them how, across repeated 250-generation runs with selection, crossover, mutation and elitism.</Stream>
@@ -96,7 +92,6 @@ const TURNS: Turn[] = [
   },
   {
     id: "writing", title: "Writing", q: "Does Indi write?",
-    keys: ["write", "writing", "essay", "dynamo", "medium", "blog", "system design", "distributed", "amazon"],
     a: (
       <>
         <Stream delay={90}>Yes, mostly to check understanding. Indi's first published essay, written for fun to learn system design, is about Amazon's Dynamo and the cost of being always available.</Stream>
@@ -109,7 +104,6 @@ const TURNS: Turn[] = [
   },
   {
     id: "background", title: "Background", q: "What's Indi's background?",
-    keys: ["background", "tesco", "experience", "education", "cv", "resume", "work", "job", "a level", "history", "career"],
     a: (
       <>
         <Stream delay={90}>Unusual, in a useful way. Indi has studied for the degree online while working in Tesco Mobile phone shops since 2022, including a year as Sales Manager coaching teams of up to six across several stores. That's four years of explaining technology to people who just need it to work.</Stream>
@@ -130,7 +124,6 @@ const TURNS: Turn[] = [
   },
   {
     id: "reading", title: "Reading list", q: "What does Indi read for fun?",
-    keys: ["read", "reading", "paper", "papers", "books", "learn"],
     a: (
       <>
         <Stream delay={90}>Research papers, mostly the ones behind tools Indi already uses, to understand why they work, what they assume and where they break.</Stream>
@@ -149,7 +142,6 @@ const TURNS: Turn[] = [
   },
   {
     id: "contact", title: "Get in touch", q: "How do I get in touch?",
-    keys: ["contact", "email", "hire", "hiring", "linkedin", "github", "touch", "reach", "message", "role", "job"],
     a: (
       <>
         <Stream delay={90}>Indi is looking for graduate software engineering roles starting in 2027, and conversations with researchers working on agents, multimodal models and AI safety. Email is best.</Stream>
@@ -167,16 +159,6 @@ const SUGGEST = [
   { label: "What's Indi building now?", turn: 3 },
   { label: "How do I get in touch?", turn: 9 },
 ];
-
-function route(text: string): number {
-  const t = text.toLowerCase();
-  let best = -1, score = 0;
-  TURNS.forEach((turn, i) => {
-    const s = turn.keys.reduce((n, k) => (t.includes(k) ? n + k.length : n), 0);
-    if (s > score) { score = s; best = i; }
-  });
-  return best;
-}
 
 /* ------------------------------------------------------------------ */
 /* Icons                                                               */
@@ -202,30 +184,48 @@ export default function ChatPortfolio({ posts = FALLBACK_POSTS }: { posts?: Post
   const [active, setActive] = useState(-1);
   const [value, setValue] = useState("");
   const [focused, setFocused] = useState(false);
-  const [nomatch, setNomatch] = useState(false);
+  const [live, setLive] = useState<{ key: number; q: string; id: string | null }[]>([]);
   const [sideOpen, setSideOpen] = useState(false);
   const manual = useRef(false);
   manual.current = focused || value.length > 0;
 
   const goTo = useCallback((i: number) => {
     setSideOpen(false);
-    setNomatch(false);
     const el = turnRefs.current[i];
     if (!el) return;
     const top = el.getBoundingClientRect().top + window.scrollY - 64;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top, behavior: reduce ? "auto" : "smooth" });
+    const far = Math.abs(top - window.scrollY) > window.innerHeight * 3;
+    window.scrollTo({ top, behavior: reduce || far ? "auto" : "smooth" });
   }, []);
+
+  const goToId = useCallback((id: string) => goTo(TURNS.findIndex((t) => t.id === id)), [goTo]);
+  const titleOf = (id: string) => TURNS.find((t) => t.id === id)?.title ?? "";
+
+  // A typed question joins the conversation as a new message at the end.
+  const ask = useCallback((q: string) => {
+    const text = q.trim();
+    if (!text) return;
+    setLive((l) => [...l, { key: Date.now() + l.length, q: text, id: matchQuestion(text)?.id ?? null }]);
+  }, []);
+
+  useEffect(() => {
+    if (!live.length) return;
+    const turns = document.querySelectorAll<HTMLElement>(".live-turn");
+    const el = turns[turns.length - 1];
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 64;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const far = Math.abs(top - window.scrollY) > window.innerHeight * 3;
+    window.scrollTo({ top, behavior: reduce || far ? "auto" : "smooth" });
+  }, [live.length]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const q = value.trim();
-    if (!q) return;
-    const i = route(q);
-    if (i < 0) { setNomatch(true); return; }
+    if (!value.trim()) return;
+    ask(value);
     setValue("");
     (document.activeElement as HTMLElement | null)?.blur();
-    goTo(i);
   };
 
   /* Scroll engine: reveals the conversation as you scroll. */
@@ -387,27 +387,26 @@ export default function ChatPortfolio({ posts = FALLBACK_POSTS }: { posts?: Post
               </div>
             </section>
           ))}
-          <p className="end">That's the tour. Scroll back up, or ask about something specific below.</p>
+          <p className="end">That's the tour. Ask me anything else about Indi below.</p>
+          <div className="live">
+            {live.map((m, i) => (
+              <LiveTurn key={m.key} q={m.q} id={m.id} seed={i} onAsk={ask} onJump={goToId} jumpLabel={titleOf} />
+            ))}
+          </div>
         </main>
 
         <div className="dock">
-          {nomatch && (
-            <div className="nomatch" role="status">
-              I can only answer from Indi's portfolio. Try one of these:
-              <div>{TURNS.map((t, i) => <button key={t.id} type="button" onClick={() => { setValue(""); goTo(i); }}>{t.title}</button>)}</div>
-            </div>
-          )}
           <form className="composer" onSubmit={onSubmit}>
             <label htmlFor="ask" className="sr-only">Ask about Indi's work</label>
-            <input id="ask" autoComplete="off" value={value} placeholder={focused || value ? "" : "Ask about Indi's work"}
-              onChange={(e) => { setValue(e.target.value); setNomatch(false); }} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
+            <input id="ask" autoComplete="off" value={value} placeholder={focused || value ? "" : "Ask anything about Indi"}
+              onChange={(e) => setValue(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
             <span ref={typedRef} className="typed" aria-hidden="true" style={{ display: "none" }} />
             <div className="tools">
-              <span className="tag">Press Enter to jump to an answer</span>
+              <span className="tag">Answers come from Indi's real portfolio</span>
               <button ref={sendRef} type="submit" className="send" aria-label="Ask" data-idle="true"><ArrowUp /></button>
             </div>
           </form>
-          <p className="footnote">This conversation is scripted from Indi's real projects. Nothing here is generated live.</p>
+          <p className="footnote">No AI writes these answers. Your question is matched to things Indi has actually done.</p>
         </div>
       </div>
     </div>

@@ -5,9 +5,9 @@ import { Fragment, type ReactNode } from "react";
  * scroll engine can reveal them one by one without changing layout.
  * Supports **bold**, *italic* and [links](https://...).
  */
-type Seg = { text: string; kind: "plain" | "b" | "i" | "a"; href?: string };
+export type Seg = { text: string; kind: "plain" | "b" | "i" | "a"; href?: string };
 
-function parse(src: string): Seg[] {
+export function parse(src: string): Seg[] {
   const out: Seg[] = [];
   const re = /(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g;
   let last = 0;
