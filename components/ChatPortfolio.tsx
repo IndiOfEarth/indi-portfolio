@@ -62,6 +62,8 @@ const TURNS: Turn[] = [
     a: (
       <>
         <Stream delay={90}>Final-year research called PACT, working title *Understanding is not permission*. Picture a student group chat after dinner: a receipt photo, a voice note, an amount that changes halfway through, and someone else chiming in. An AI can summarise that conversation well. Whether it should act on it is a separate question.</Stream>
+        <Stream>Here's Indi walking through the project proposal in a short video:</Stream>
+        <Block><VideoCard id="lTF-d59sEHg" title="PACT: the project proposal" label="PACT: the project proposal, in brief" sub="A short walkthrough of the research proposal" /></Block>
         <Stream>Indi is building a system that coordinates three pretrained models, for language, speech and vision, into one versioned record of the proposed payment, tracking who said what and when it changed. A verification step then decides whether to act, ask or refuse. Step through a scripted example:</Stream>
         <Block><PactDemo /></Block>
         <Stream>It's in progress: proposal and literature review now, then implementation and an evaluation against LLM-only baselines on changed prices, wrong recipients, stale consent and prompt injection. All payments are simulated. The interest started on the shop floor, where Indi saw how often account-security problems begin with a request that looks completely normal.</Stream>
